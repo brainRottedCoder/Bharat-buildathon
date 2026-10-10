@@ -1,0 +1,31 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+*.log
+.DS_Store
+pipeline/tmp/
+pipeline/out/
+.dev.vars
+.wrangler/
+ml/data/
+ml/out/
+__pycache__/
+
+# Per-person work briefs stay local
+delegation/
+docs/log/
+
+# AWS SAM build output; samconfig.toml can hold plaintext parameter values
+.aws-sam/
+samconfig.toml
+aws/dist/
+
+# Demo recorder: generated frames, mix stems, and local node_modules
+demo/node_modules/
+demo/out/
+demo/vo/
+demo/ds/og.png
+demo/bed-full.mp3
+demo/composition/bundle.js

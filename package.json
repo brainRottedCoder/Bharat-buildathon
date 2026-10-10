@@ -1,0 +1,20 @@
+{
+  "name": "agniguard",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "logic",
+    "worker",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace frontend",
+    "build": "npm run build --workspace frontend",
+    "build:lambda": "esbuild aws/lambda/index.ts --bundle --platform=node --target=es2022 --minify --external:@aws-sdk/* --outfile=aws/dist/index.js",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0"
+  }
+}
