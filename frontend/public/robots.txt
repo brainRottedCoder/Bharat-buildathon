@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://agniguard.tigersh19991.workers.dev/sitemap.xml

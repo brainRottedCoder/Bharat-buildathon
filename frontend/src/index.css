@@ -1,0 +1,885 @@
+/* AgniGuard: Vibers Mosaic System, single product accent (Palm Leaf).
+   Rules: assets/palette/palette_rules.txt.
+   Green = product / interaction. Orange = stubble data. Red = wildfire data. Neutrals = structure. */
+:root {
+  /* Product accent ramp (Palm Leaf) */
+  --green-shade: #5D6E48; /* identity text */
+  --green: #748E54;       /* interaction */
+  --green-tint: #A4B68F;  /* quiet accent, backgrounds only */
+
+  /* Neutrals */
+  --graphite: #333333;
+  --porcelain: #FDFFFC;
+  --mist: #F1F3F0;
+  --line: #DFE0DE;
+  --muted-ink: #767976;
+  --line-dark: #4B4B4B;     /* Mosaic dark-theme border */
+  --muted-ink-dark: #9A9B99; /* Mosaic dark-theme muted ink */
+
+  /* Fire semantics: data only, never decoration */
+  --stubble: #F19143;
+  --wildfire: #EF2D56;
+  --smoke: #5B6573; /* slate grey: smoke plume, map and panel */
+  --stubble-bg: color-mix(in srgb, var(--stubble) 14%, var(--porcelain));
+  --wildfire-bg: color-mix(in srgb, var(--wildfire) 10%, var(--porcelain));
+  --green-bg: color-mix(in srgb, var(--green-tint) 22%, var(--porcelain));
+
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-body: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --radius-s: 4px;
+  --radius-m: 10px;
+
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--graphite);
+  background-color: var(--porcelain);
+  line-height: 1.6;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  height: 100dvh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--porcelain);
+}
+
+button {
+  font-family: inherit;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.agniguard-app {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  position: relative;
+}
+
+/* Header: dark instrument bar */
+.app-header {
+  background-color: var(--graphite);
+  color: var(--porcelain);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--line-dark);
+  z-index: 20;
+}
+
+.brand-container {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Tint, not shade, on Graphite: shade is ~2.3:1 there, tint ~5.6:1. Shade is used on light surfaces. */
+.brand-title {
+  font-family: var(--font-mono);
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--green-tint);
+}
+
+.brand-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-ink-dark);
+}
+
+/* Region Selector: neutral tabs, one green active state */
+.region-selector {
+  width: 100%;
+}
+
+.region-segmented-control {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1px;
+  background-color: var(--line-dark);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-s);
+  overflow: hidden;
+}
+
+.region-tab {
+  background: var(--graphite);
+  border: none;
+  color: var(--muted-ink-dark);
+  padding: 0.45rem 0.25rem;
+  min-height: 48px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.region-tab:hover {
+  background-color: #3d3d3d;
+  color: var(--porcelain);
+}
+
+.region-tab-active,
+.region-tab-active:hover {
+  background-color: var(--green);
+  color: var(--porcelain);
+}
+
+.region-tab-name {
+  font-size: 0.85rem;
+}
+
+.region-tab-native {
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+
+/* Status strip: quiet, not an alert */
+.status-banner-container {
+  z-index: 10;
+}
+
+.status-banner {
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem 0.9rem;
+  flex-wrap: wrap;
+  background-color: var(--mist);
+  color: var(--graphite);
+  border-bottom: 1px solid var(--line);
+  border-left: 3px solid var(--green);
+}
+
+.banner-loading {
+  color: var(--muted-ink);
+}
+
+/* Measured zero-hotspot result */
+.banner-empty {
+  background-color: var(--green-bg);
+  color: var(--green-shade);
+  font-weight: 600;
+}
+
+/* Generic errors stay neutral: red is reserved for wildfire data. */
+.banner-error {
+  border-left-color: var(--graphite);
+  justify-content: space-between;
+}
+
+.banner-ready {
+  background-color: var(--porcelain);
+}
+
+.summary-total {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--green-shade);
+}
+
+.summary-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--graphite);
+}
+
+.summary-count::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.summary-stubble::before { background-color: var(--stubble); }
+.summary-wildfire::before { background-color: var(--wildfire); }
+
+.summary-demo {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-ink);
+}
+
+.retry-button {
+  background-color: var(--graphite);
+  color: var(--porcelain);
+  border: none;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-s);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Main Content & Map */
+.app-main-content {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  overflow: hidden;
+}
+
+.map-view-container {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.maplibre-map-root {
+  width: 100%;
+  height: 100%;
+}
+
+/* Map Legend */
+.map-legend {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background-color: var(--porcelain);
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(51, 51, 51, 0.12);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--graphite);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  z-index: 5;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  flex: none;
+}
+
+.dot-stubble {
+  background-color: var(--stubble);
+}
+
+.dot-wildfire {
+  background-color: var(--wildfire);
+}
+
+.legend-swatch {
+  width: 14px;
+  height: 10px;
+  display: inline-block;
+  flex: none;
+  border-radius: 2px;
+}
+
+/* Fades away from the fire, like the haze bands on the map */
+.swatch-spread {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--wildfire) 55%, transparent), color-mix(in srgb, var(--wildfire) 12%, transparent));
+}
+
+.swatch-farmland {
+  background-color: color-mix(in srgb, #C9B03A 55%, transparent);
+  vertical-align: -1px;
+}
+
+.swatch-smoke {
+  background-color: color-mix(in srgb, var(--smoke) 18%, transparent);
+  border: 2px dotted var(--smoke);
+}
+
+/* Hotspot Detail Panel (Mobile Bottom Sheet / Desktop Drawer) */
+.hotspot-detail-panel {
+  display: none;
+}
+
+.hotspot-panel-active {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--porcelain);
+  max-height: 60%;
+  overflow-y: auto;
+  border-top-left-radius: var(--radius-m);
+  border-top-right-radius: var(--radius-m);
+  border-top: 3px solid var(--green);
+  box-shadow: 0 -2px 12px rgba(51, 51, 51, 0.16);
+  padding: 1.25rem;
+  z-index: 30;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .hotspot-panel-active {
+    top: 1rem;
+    bottom: 1rem;
+    /* Clear the MapLibre zoom/compass column at top-right. */
+    right: 56px;
+    left: auto;
+    width: 380px;
+    border-radius: var(--radius-m);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--green);
+    max-height: none;
+  }
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.panel-header-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Graphite text on a tinted chip with a solid semantic edge: orange as text fails contrast. */
+.classification-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-s);
+  width: fit-content;
+  color: var(--graphite);
+  border: 1px solid var(--line);
+  background-color: var(--mist);
+}
+
+.badge-crop-burning {
+  background-color: var(--stubble-bg);
+  border-color: var(--stubble);
+}
+
+.badge-wildfire {
+  background-color: var(--wildfire-bg);
+  border-color: var(--wildfire);
+}
+
+.panel-title {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  color: var(--green-shade);
+}
+
+.panel-close-button {
+  background: var(--mist);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  width: 36px;
+  height: 36px;
+  flex: none;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted-ink);
+  cursor: pointer;
+}
+
+.panel-close-button:hover {
+  color: var(--graphite);
+  border-color: var(--muted-ink);
+}
+
+/* Voice & Indic-TTS Section */
+.panel-voice-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  background-color: var(--mist);
+  padding: 0.75rem;
+  border-radius: var(--radius-s);
+  border: 1px solid var(--line);
+}
+
+.lang-selector-group {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.lang-pill {
+  flex: 1;
+  background-color: var(--porcelain);
+  color: var(--graphite);
+  border: 1px solid var(--line);
+  padding: 0.4rem;
+  min-height: 40px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.lang-pill:hover {
+  background-color: var(--green-bg);
+  border-color: var(--green-tint);
+}
+
+.lang-pill-active,
+.lang-pill-active:hover {
+  background-color: var(--green);
+  color: var(--porcelain);
+  border-color: var(--green);
+  font-weight: 600;
+}
+
+/* Primary action */
+.tts-button {
+  background-color: var(--green);
+  color: var(--porcelain);
+  border: none;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease;
+}
+
+.tts-button:hover,
+.tts-state-playing {
+  background-color: var(--green-shade);
+}
+
+.tts-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tts-state-error {
+  background-color: var(--graphite);
+}
+
+/* Panel Cards & Advisory */
+.panel-card {
+  background-color: var(--porcelain);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-s);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.advisory-card {
+  background-color: var(--mist);
+  border-left: 3px solid var(--green);
+}
+
+.advisory-card .card-title {
+  color: var(--green-shade);
+}
+
+.advisory-text {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--graphite);
+}
+
+/* Eyebrow label */
+.card-title {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--muted-ink);
+  letter-spacing: 0.08em;
+}
+
+.card-value {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--green-shade);
+}
+
+/* Smoke direction badge: big compass letter + arrow rotated to the plume bearing */
+.direction-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.35rem 0;
+}
+
+.direction-arrow {
+  width: 3.25rem;
+  height: 3.25rem;
+  flex: none;
+  fill: var(--smoke);
+  transition: transform 0.3s ease;
+}
+
+.direction-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.direction-letter {
+  font-family: var(--font-mono);
+  font-size: 2.6rem;
+  font-weight: 700;
+  color: var(--graphite);
+  letter-spacing: -0.02em;
+}
+
+.direction-badge-calm .direction-letter {
+  font-size: 1.6rem;
+  color: var(--muted-ink);
+}
+
+.direction-word {
+  font-size: 0.9rem;
+  color: var(--muted-ink);
+  font-weight: 500;
+}
+
+.card-subtext {
+  font-size: 0.85rem;
+  color: var(--muted-ink);
+  font-weight: 500;
+}
+
+.card-note {
+  font-size: 0.8rem;
+  color: var(--muted-ink);
+  margin-top: 0.25rem;
+}
+
+.panel-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+/* Credits (mandatory CC-BY 4.0 attribution + model disclaimer): a (C) button over the map,
+   bottom-left, opening the full text. Sits under the detail sheet. */
+.credits {
+  position: absolute;
+  left: 0.5rem;
+  bottom: 0.5rem;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.credits-button {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line-dark);
+  background-color: var(--graphite);
+  color: var(--porcelain);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(51, 51, 51, 0.2);
+}
+
+.credits-button[aria-expanded='true'] {
+  background-color: var(--green);
+  border-color: var(--green);
+}
+
+.credits-panel {
+  max-width: min(24rem, calc(100vw - 2rem));
+  background-color: var(--graphite);
+  color: var(--muted-ink-dark);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-s);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.credits-panel[hidden] {
+  display: none;
+}
+
+.credits-by {
+  font-family: var(--font-mono);
+}
+
+.spinner-icon {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 2px solid var(--green);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: agniguard-spin 0.8s linear infinite;
+}
+
+@keyframes agniguard-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Turnstile human check: a routine step, styled as a quiet status line, never as an alert. */
+.human-check {
+  justify-content: space-between;
+}
+
+.human-check-loading {
+  color: var(--graphite);
+}
+
+.human-check-error {
+  border-left-color: var(--graphite);
+}
+
+.human-check-retry {
+  background-color: var(--porcelain);
+  color: var(--green-shade);
+  border: 1px solid var(--green);
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-s);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.human-check-retry:hover {
+  background-color: var(--green-bg);
+}
+
+.turnstile-widget:empty {
+  display: none;
+}
+
+/* Fire-risk layer toggle (Telangana / AP only) */
+.risk-toggle {
+  background-color: var(--green);
+  color: var(--porcelain);
+  border: none;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-s);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.risk-toggle:hover {
+  background-color: var(--green-shade);
+}
+
+.risk-note {
+  margin: 0;
+  max-width: 12rem;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--muted-ink);
+}
+
+/* Phones only: the short subtitle and the legend fold. Desktop never shows either. */
+.brand-subtitle-short,
+.legend-toggle {
+  display: none;
+}
+
+/* Phones: every bar above and below the map shrinks so the map stays usable. Desktop is untouched. */
+@media (max-width: 767px) {
+  .app-header {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .brand-container {
+    flex-wrap: nowrap;
+    gap: 0.6rem;
+    min-width: 0;
+  }
+
+  .brand-title {
+    font-size: 1.1rem;
+    flex: none;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .brand-subtitle-short {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted-ink-dark);
+  }
+
+  .region-tab {
+    min-height: 40px;
+    padding: 0.3rem 0.15rem;
+  }
+
+  .region-tab-name {
+    font-size: 0.72rem;
+  }
+
+  .region-tab-native {
+    font-size: 0.6rem;
+  }
+
+  .status-banner {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    gap: 0.2rem 0.75rem;
+  }
+
+  .summary-total {
+    font-size: 0.8rem;
+  }
+
+  .summary-count {
+    font-size: 0.72rem;
+  }
+
+  .map-legend {
+    top: 0.5rem;
+    left: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.68rem;
+    gap: 0.3rem;
+    /* Clear the zoom buttons at top-right. */
+    max-width: calc(100% - 4.5rem);
+    max-height: calc(100% - 1rem);
+    overflow-y: auto;
+  }
+
+  .legend-toggle {
+    display: block;
+    background: var(--mist);
+    color: var(--graphite);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    padding: 0.3rem 0.6rem;
+    min-height: 32px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .map-legend-collapsed {
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .map-legend-collapsed > :not(.legend-toggle) {
+    display: none;
+  }
+
+  .map-legend-collapsed .legend-toggle {
+    box-shadow: 0 1px 3px rgba(51, 51, 51, 0.12);
+  }
+
+  .risk-toggle {
+    min-height: 32px;
+    font-size: 0.7rem;
+  }
+
+  .risk-note {
+    max-width: none;
+    font-size: 0.66rem;
+  }
+
+  .hotspot-panel-active {
+    max-height: 50%;
+    padding: 0.9rem;
+    padding-bottom: calc(0.9rem + env(safe-area-inset-bottom));
+    gap: 0.65rem;
+  }
+
+  .panel-title {
+    font-size: 1rem;
+  }
+
+  .direction-letter {
+    font-size: 2rem;
+  }
+}

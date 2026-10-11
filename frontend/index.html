@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- No dark theme yet: ask browsers not to force-darken the map and panels. -->
+    <meta name="color-scheme" content="only light" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600;700&display=swap" />
+    <title>AgniGuard — Live Fire &amp; Smoke Radar for India | Stubble Burning &amp; Forest Fire Map</title>
+    <meta name="description" content="Live fire map of India from NASA FIRMS satellite hotspots, with wind-driven smoke plume estimates. See stubble burning in Punjab and Haryana, forest fires, and where the smoke is heading." />
+    <link rel="canonical" href="https://agniguard.tigersh19991.workers.dev/" />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#5D6E48" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AgniGuard" />
+    <meta property="og:locale" content="en_IN" />
+    <meta property="og:url" content="https://agniguard.tigersh19991.workers.dev/" />
+    <meta property="og:title" content="AgniGuard — Live Fire &amp; Smoke Radar for India" />
+    <meta property="og:description" content="Live NASA FIRMS fire hotspots across India with smoke plume estimates. Track stubble burning, forest fires and where the smoke goes." />
+    <meta property="og:image" content="https://agniguard.tigersh19991.workers.dev/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "AgniGuard",
+        "url": "https://agniguard.tigersh19991.workers.dev/",
+        "description": "On-demand fire and smoke radar for India: live NASA FIRMS hotspots, simplified Gaussian-puff smoke dispersion, and crop-burning versus forest fire tagging.",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Any",
+        "areaServed": { "@type": "Country", "name": "India" },
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" }
+      }
+    </script>
+    <style>
+      /* Loading screen: the logo drawn as outlines, each mark filling with its own colour in
+         turn (~1.2s), then main.tsx fades it out once the app has rendered. Inline so it shows
+         before any JavaScript arrives. Colours are the logo's own (assets/logo/). */
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #fdfffc;
+        transition: opacity 0.35s ease;
+      }
+      #splash.splash-done {
+        opacity: 0;
+        pointer-events: none;
+      }
+      #splash .splash-logo {
+        width: min(52vw, 240px);
+        height: auto;
+      }
+      #splash .s {
+        fill-opacity: 0;
+        stroke-width: 1.5px;
+        vector-effect: non-scaling-stroke;
+        animation: splash-fill 0.32s ease-out forwards;
+        animation-delay: calc(var(--i) * 32ms);
+      }
+      @keyframes splash-fill {
+        to {
+          fill-opacity: 1;
+          stroke-opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #splash .s {
+          animation: none;
+          fill-opacity: 1;
+          stroke-opacity: 0;
+        }
+        #splash {
+          transition: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="splash" role="status" aria-label="Loading AgniGuard"><svg class="splash-logo" viewBox="0 0 1200 1346" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"><circle class="s" style="--i:0" stroke="#5D6E48" cx="513.33" cy="193.33" r="26.87" fill="#5D6E48"/><rect class="s" style="--i:1" stroke="#5D6E48" x="571.40" y="164.73" width="57.20" height="57.20" rx="6.86" fill="#5D6E48"/><circle class="s" style="--i:2" stroke="#748E54" cx="686.67" cy="193.33" r="26.87" fill="#748E54"/><circle class="s" style="--i:3" stroke="#748E54" cx="426.67" cy="280.00" r="26.87" fill="#748E54"/><circle class="s" style="--i:4" stroke="#748E54" cx="340.00" cy="366.67" r="26.87" fill="#748E54"/><circle class="s" style="--i:5" stroke="#5D6E48" cx="253.33" cy="453.33" r="26.87" fill="#5D6E48"/><circle class="s" style="--i:6" stroke="#A4B68F" cx="253.33" cy="540.00" r="26.87" fill="#A4B68F"/><circle class="s" style="--i:7" stroke="#5D6E48" cx="253.33" cy="626.67" r="26.87" fill="#5D6E48"/><circle class="s" style="--i:8" stroke="#A4B68F" cx="340.00" cy="713.33" r="26.87" fill="#A4B68F"/><circle class="s" style="--i:9" stroke="#748E54" cx="426.67" cy="800.00" r="26.87" fill="#748E54"/><rect class="s" style="--i:10" stroke="#5D6E48" x="484.73" y="858.07" width="57.20" height="57.20" rx="6.86" fill="#5D6E48"/><rect class="s" style="--i:11" stroke="#748E54" x="571.40" y="858.07" width="57.20" height="57.20" rx="6.86" fill="#748E54"/><circle class="s" style="--i:12" stroke="#5D6E48" cx="686.67" cy="886.67" r="26.87" fill="#5D6E48"/><circle class="s" style="--i:13" stroke="#A4B68F" cx="773.33" cy="800.00" r="26.87" fill="#A4B68F"/><circle class="s" style="--i:14" stroke="#748E54" cx="860.00" cy="713.33" r="26.87" fill="#748E54"/><rect class="s" style="--i:15" stroke="#748E54" x="918.07" y="598.07" width="57.20" height="57.20" rx="6.86" fill="#748E54"/><circle class="s" style="--i:16" stroke="#5D6E48" cx="946.67" cy="540.00" r="26.87" fill="#5D6E48"/><circle class="s" style="--i:17" stroke="#5D6E48" cx="600.00" cy="366.67" r="26.87" fill="#5D6E48"/><rect class="s" style="--i:18" stroke="#748E54" x="484.73" y="424.73" width="57.20" height="57.20" rx="6.86" fill="#748E54"/><circle class="s" style="--i:19" stroke="#748E54" cx="426.67" cy="540.00" r="26.87" fill="#748E54"/><circle class="s" style="--i:20" stroke="#748E54" cx="513.33" cy="626.67" r="26.87" fill="#748E54"/><rect class="s" style="--i:21" stroke="#748E54" x="571.40" y="684.73" width="57.20" height="57.20" rx="6.86" fill="#748E54"/><circle class="s" style="--i:22" stroke="#748E54" cx="686.67" cy="626.67" r="26.87" fill="#748E54"/><circle class="s" style="--i:23" stroke="#A4B68F" cx="773.33" cy="540.00" r="26.87" fill="#A4B68F"/><circle class="s" style="--i:24" stroke="#5D6E48" cx="686.67" cy="453.33" r="26.87" fill="#5D6E48"/><circle class="s" style="--i:25" stroke="#748E54" cx="773.33" cy="366.67" r="26.87" fill="#748E54"/><circle class="s" style="--i:26" stroke="#A4B68F" cx="860.00" cy="280.00" r="26.87" fill="#A4B68F"/><text class="s" style="--i:27" x="600" y="1150" text-anchor="middle" font-family="'JetBrains Mono', ui-monospace, monospace" font-weight="700" font-size="118" letter-spacing="10" stroke="#5D6E48" fill="#5D6E48">AGNIGUARD</text></svg></div>
+    <div id="root"></div>
+    <noscript>
+      <h1>AgniGuard — live fire and smoke radar for India</h1>
+      <p>AgniGuard maps active fires across North, South, West and East India from NASA FIRMS
+        satellite hotspots, estimates where the smoke travels using current wind and a simplified
+        Gaussian-puff model (not HYSPLIT), and tags likely crop residue (stubble, parali) burning
+        separately from forest fires. JavaScript is required to load the map.</p>
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
