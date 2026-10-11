@@ -1,0 +1,168 @@
+# Madhuca on AWS — the AWS edition of the fire & smoke radar (aws/README.md).
+#
+# One CloudFront URL serves everything, mirroring the Cloudflare edition's single
+# origin: the static frontend from S3, and /api/* through API Gateway to Lambda.
+#
+# Deploy:  sam build --template-file aws/template.yaml && sam deploy --guided
+# Secrets: FIRMS_MAP_KEY and TURNSTILE_SECRET are NoEcho parameters, prompted at
+#          deploy time. Never commit samconfig.toml with parameter values saved.
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Madhuca — fire and smoke radar for India, AWS edition (Lambda + API Gateway + S3 + CloudFront)
+
+Parameters:
+  FirmsMapKey:
+    Type: String
+    NoEcho: true
+    Description: NASA FIRMS MAP_KEY (https://firms.modaps.eosdis.nasa.gov/api/area/)
+  TurnstileSecret:
+    Type: String
+    NoEcho: true
+    Description: Cloudflare Turnstile secret key (also signs the session cookie)
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures:
+      - arm64
+    MemorySize: 512
+    Timeout: 30
+
+Resources:
+  # Static frontend + the prebuilt grids (boundaries/states.bin, landcover/india.bin).
+  # Private: served through CloudFront OAC, read by the Lambda over IAM.
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  RadarApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      Description: Madhuca /api/radar + /api/verify (payload format 2.0, $default stage)
+
+  RadarFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      # Pre-bundled by `npm run build:lambda` (repo root) into a single ~12 KB file.
+      # Pre-bundling keeps the deployment package tiny; letting SAM run esbuild at the
+      # workspace root drags the whole workspace's node_modules into the zip and
+      # Lambda rejects it for exceeding the 250 MB unzipped limit.
+      CodeUri: dist/
+      Handler: index.handler
+      Description: Port of worker/src/index.ts — GET /api/radar and POST /api/verify
+      Environment:
+        Variables:
+          FIRMS_MAP_KEY: !Ref FirmsMapKey
+          TURNSTILE_SECRET: !Ref TurnstileSecret
+          GRIDS_BUCKET: !Ref SiteBucket
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SiteBucket
+      Events:
+        Radar:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref RadarApi
+            Path: /api/radar
+            Method: GET
+        Verify:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref RadarApi
+            Path: /api/verify
+            Method: POST
+
+  SiteOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: agniguard-site
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  SiteDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Madhuca — static site from S3, /api/* through API Gateway
+        DefaultRootObject: index.html
+        HttpVersion: http2and3
+        # PriceClass_200 includes the India edge locations; 100 does not.
+        PriceClass: PriceClass_200
+        Origins:
+          - Id: s3-site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+            OriginAccessControlId: !GetAtt SiteOAC.Id
+          - Id: api
+            DomainName: !Sub '${RadarApi}.execute-api.${AWS::Region}.amazonaws.com'
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+        DefaultCacheBehavior:
+          TargetOriginId: s3-site
+          ViewerProtocolPolicy: redirect-to-https
+          Compress: true
+          # AWS managed cache policy: CachingOptimized
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        CacheBehaviors:
+          # Fire data is live and per-visitor: never cached, all headers and the
+          # query string forwarded (except Host, which must stay the API's domain).
+          - PathPattern: /api/*
+            TargetOriginId: api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods:
+              - GET
+              - HEAD
+              - OPTIONS
+              - PUT
+              - POST
+              - PATCH
+              - DELETE
+            # AWS managed policies: CachingDisabled + AllViewerExceptHostHeader
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+        # The app has no client-side routes; unknown paths get the app's 404 page
+        # with a real 404 status, same as the Cloudflare edition.
+        CustomErrorResponses:
+          - ErrorCode: 404
+            ResponseCode: 404
+            ResponsePagePath: /404.html
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${SiteBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${SiteDistribution}'
+
+Outputs:
+  SiteURL:
+    Description: Open this — the whole app behind one CloudFront URL
+    Value: !Sub 'https://${SiteDistribution.DomainName}'
+  BucketName:
+    Description: Sync target for aws/sync-site.ps1 (frontend/dist goes here)
+    Value: !Ref SiteBucket
+  DistributionId:
+    Description: CloudFront distribution ID (for cache invalidation)
+    Value: !Ref SiteDistribution
+  ApiEndpoint:
+    Description: Direct API URL (normally reached through the CloudFront URL above)
+    Value: !Sub 'https://${RadarApi}.execute-api.${AWS::Region}.amazonaws.com'

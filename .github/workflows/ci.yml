@@ -1,0 +1,50 @@
+# Runs the same checks the PR template asks you to paste output for, so a PR that
+# self-reports green but isn't gets caught here instead of at integration time.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - run: npm ci
+
+      # docs/CODING_STANDARDS.md section 1: zero emoji in code.
+      - name: No emoji
+        run: |
+          node -e "
+          const fs = require('fs'), path = require('path');
+          // (C) (R) TM are Extended_Pictographic too, but the ESA attribution needs the (C).
+          const re = /(?![©®™])\p{Extended_Pictographic}/u;
+          let bad = 0;
+          const walk = (d) => { if (!fs.existsSync(d)) return; for (const f of fs.readdirSync(d)) {
+            const p = path.join(d, f);
+            if (fs.statSync(p).isDirectory()) { if (f !== 'node_modules') walk(p); continue; }
+            if (!/\.(ts|tsx|js|mjs|css|html|sh|py)$/.test(f)) continue;
+            fs.readFileSync(p, 'utf8').split('\n').forEach((l, i) => { if (re.test(l)) { bad++; console.log(p + ':' + (i + 1) + ': ' + l.trim()); } });
+          } };
+          ['frontend/src', 'frontend/test', 'logic/src', 'logic/test', 'worker/src', 'worker/test', 'worker/bench', 'worker/scripts', 'ml', 'pipeline'].forEach(walk);
+          if (bad) { console.error(bad + ' line(s) with emoji. See docs/CODING_STANDARDS.md.'); process.exit(1); }
+          "
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      # logic/ runs node:test over TypeScript directly, no runner dependency. Needs
+      # a Node with type stripping on by default, which is why this is not pinned to 22.
+      - name: Test
+        run: npm test --workspaces --if-present

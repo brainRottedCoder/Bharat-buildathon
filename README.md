@@ -6,7 +6,7 @@
 
 <video src="assets/illustration/illustration.mp4" controls muted playsinline width="100%"></video>
 
-[Watch the 24-second illustration](assets/illustration/illustration.mp4)
+[Watch the 54-second illustration](assets/illustration/illustration.mp4)
 
 Built by **Team Vibers** · MIT licensed · Built for Google's *Build with AI: Code for Communities* hackathon (Track 2, Clean Air & Climate Resilience)
 

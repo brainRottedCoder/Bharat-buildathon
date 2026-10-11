@@ -1,0 +1,21 @@
+{
+  "comment": "Ten cues max. Times on the 54s AgniGuard clock. SFX files land in demo/sfx/ after step 6.",
+  "sounds": {
+    "ui-tap": { "file": "../sfx/ui-tap.mp3", "hit": 0.0 },
+    "rubber-stamp": { "file": "../sfx/rubber-stamp.mp3", "hit": 0.0 },
+    "tape-whoosh": { "file": "../sfx/tape-whoosh.mp3", "hit": 0.15 },
+    "big-stamp": { "file": "../sfx/big-stamp.mp3", "hit": 0.35 }
+  },
+  "cues": [
+    { "t": 7.0, "sound": "tape-whoosh", "db": -12, "why": "wipe into the product" },
+    { "t": 10.2, "sound": "ui-tap", "db": -13, "why": "North India tab squash" },
+    { "t": 15.6, "sound": "rubber-stamp", "db": -12, "why": "first fire stamps" },
+    { "t": 19.2, "sound": "rubber-stamp", "db": -13, "why": "fourth fire / wildfire" },
+    { "t": 23.4, "sound": "ui-tap", "db": -13, "why": "tap Ludhiana marker" },
+    { "t": 24.0, "sound": "tape-whoosh", "db": -14, "why": "panel slides in" },
+    { "t": 34.2, "sound": "rubber-stamp", "db": -12, "why": "4 fires" },
+    { "t": 37.8, "sound": "big-stamp", "db": -8, "why": "1 wildfire — the one big hit" },
+    { "t": 44.2, "sound": "tape-whoosh", "db": -12, "why": "wipe into the stamp" },
+    { "t": 48.0, "sound": "big-stamp", "db": -9, "why": "AGNIGUARD wordmark" }
+  ]
+}
