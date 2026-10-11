@@ -1,0 +1,35 @@
+// Cloudflare Workers free tier (docs/MASTER.md section 5.1).
+// Secrets, set once per environment and never committed:
+//   npx wrangler secret put FIRMS_MAP_KEY      (deployed)
+//   npx wrangler secret put TURNSTILE_SECRET   (deployed; /api/radar refuses every scan without it)
+//   worker/.dev.vars: FIRMS_MAP_KEY=... and TURNSTILE_SECRET=...   (wrangler dev; gitignored)
+// For local runs, TURNSTILE_SECRET=1x0000000000000000000000000000000AA and a build with
+// VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA are Cloudflare's always-pass test pair.
+// Production builds need VITE_TURNSTILE_SITE_KEY set to the real widget's site key (public).
+{
+  "name": "agniguard",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  // One origin serves both: the built frontend (and its land-cover masks, copied from
+  // frontend/public by vite build) as static assets, and /api/* through the Worker.
+  // Run `npm run build` first so ../frontend/dist exists.
+  "assets": {
+    "directory": "../frontend/dist",
+    "binding": "ASSETS",
+    // The app has no client-side routes, so an unknown path gets frontend/public/404.html
+    // with a real 404 status instead of the map.
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  // Per-IP rate limit on /api/radar. A real user makes about one request per region
+  // switch, so 20/min per IP is generous headroom without letting a script exhaust the
+  // FIRMS MAP_KEY (5000 transactions/10min) or the free tier's 100k requests/day.
+  // "period" is seconds; the binding only accepts 10 or 60.
+  "ratelimits": [
+    {
+      "name": "RADAR_LIMITER",
+      "namespace_id": "1",
+      "simple": { "limit": 20, "period": 60 }
+    }
+  ]
+}

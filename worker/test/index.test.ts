@@ -1,0 +1,145 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+import worker, { type Env } from '../src/index.ts';
+import { issueSession } from '../src/turnstile.ts';
+
+const TURNSTILE_SECRET = 'test-turnstile-secret';
+
+const PUBLIC = join(import.meta.dirname, '..', '..', 'frontend', 'public');
+
+const HEADER =
+  'country_id,latitude,longitude,bright_ti4,scan,track,acq_date,acq_time,satellite,instrument,confidence,version,bright_ti5,frp,daynight';
+// Ludhiana farmland (cropland in the published india.bin), in stubble season, and Lahore.
+const LUDHIANA_CROPLAND = `IND,30.7,75.6,330.5,0.42,0.38,2026-10-20,0800,N,VIIRS,n,2.0NRT,295.1,9.0,D`;
+const LAHORE = `PAK,31.55,74.35,330.5,0.42,0.38,2026-10-20,0800,N,VIIRS,n,2.0NRT,295.1,9.0,D`;
+
+const WIND = { current: { time: '2026-10-20T08:00', interval: 900, wind_speed_10m: 4, wind_direction_10m: 315 } };
+
+/** Serves the real committed files from frontend/public, as the ASSETS binding does. */
+function envWith(key: string | undefined, assetRequests: string[] = []): Env {
+  return {
+    FIRMS_MAP_KEY: key,
+    ASSETS: {
+      async fetch(input) {
+        const path = new URL(typeof input === 'string' ? input : input.url).pathname;
+        assetRequests.push(path);
+        try {
+          return new Response(readFileSync(join(PUBLIC, path)));
+        } catch {
+          return new Response('not found', { status: 404 });
+        }
+      },
+    },
+    // Every other test in this file is exercising something other than the rate limit,
+    // so the default stub always allows. Only the rate-limit test below overrides it.
+    RADAR_LIMITER: { limit: async () => ({ success: true }) },
+    TURNSTILE_SECRET,
+  };
+}
+
+async function withStubbedFetch<T>(handler: (url: string) => Response, run: () => Promise<T>) {
+  const original = globalThis.fetch;
+  const seen: string[] = [];
+  globalThis.fetch = (async (input: string | URL | Request) => {
+    const url = String(input);
+    seen.push(url);
+    return handler(url);
+  }) as typeof fetch;
+  try {
+    return { value: await run(), seen };
+  } finally {
+    globalThis.fetch = original;
+  }
+}
+
+/** `name=value` of a fresh, valid session cookie, as a browser would send it back. */
+const sessionCookie = async () => (await issueSession(TURNSTILE_SECRET, Math.floor(Date.now() / 1000))).split(';')[0]!;
+
+// The tests below exercise things other than the human check, so they send a valid
+// session; worker/test/turnstile.test.ts covers the check itself.
+const get = async (path: string, env: Env) =>
+  worker.fetch(new Request(`http://localhost${path}`, { headers: { cookie: await sessionCookie() } }), env);
+
+test('missing grids are a 500, not a scan where every fire silently reads as other or abroad', async () => {
+  // First in the file: the grids are cached per isolate once a load succeeds.
+  const env = envWith('k');
+  env.ASSETS = { fetch: async () => new Response('not found', { status: 404 }) };
+  const { value: res } = await withStubbedFetch(
+    () => new Response(`${HEADER}
+${LUDHIANA_CROPLAND}
+`),
+    () => get('/api/radar?region=north', env),
+  );
+  assert.equal(res.status, 500);
+  assert.match(((await res.json()) as { error: string }).error, /responded 404/);
+});
+
+test('classifies a known Punjab cropland point against the grids read from static assets, and drops Lahore', async () => {
+  const assetRequests: string[] = [];
+  const { value: res } = await withStubbedFetch(
+    (url) => (url.startsWith('https://api.open-meteo.com/') ? Response.json(WIND) : new Response(`${HEADER}\n${LUDHIANA_CROPLAND}\n${LAHORE}\n`)),
+    () => get('/api/radar?region=north', envWith('test-key', assetRequests)),
+  );
+
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as {
+    hotspots: { id: string }[];
+    plumes: Record<string, { bearingDeg: number }>;
+    classifications: Record<string, { kind: string; landCover: string }>;
+    states: Record<string, string>;
+  };
+  assert.equal(body.hotspots.length, 1);
+  const id = body.hotspots[0]!.id;
+  assert.equal(body.classifications[id]!.landCover, 'cropland');
+  assert.equal(body.classifications[id]!.kind, 'likely-crop-burning');
+  assert.equal(body.plumes[id]!.bearingDeg, 135);
+  assert.equal(body.states[id], 'Punjab');
+  assert.deepEqual(assetRequests.sort(), ['/boundaries/states.bin', '/landcover/india.bin']);
+});
+
+test('a missing FIRMS key is a 500 error that says it is not an all-clear, and calls nothing', async () => {
+  const { value: res, seen } = await withStubbedFetch(
+    () => new Response('unexpected'),
+    () => get('/api/radar?region=west', envWith(undefined)),
+  );
+  assert.equal(res.status, 500);
+  assert.match(((await res.json()) as { error: string }).error, /not an all-clear/);
+  assert.equal(seen.length, 0);
+});
+
+test('a FIRMS failure is a 502, and the key does not appear in the response', async () => {
+  const { value: res } = await withStubbedFetch(
+    () => new Response('bad key', { status: 403, statusText: 'Forbidden' }),
+    () => get('/api/radar?region=west', envWith('secret-key-123')),
+  );
+  assert.equal(res.status, 502);
+  const text = await res.text();
+  assert.match(text, /FIRMS responded 403/);
+  assert.doesNotMatch(text, /secret-key-123/);
+});
+
+test('an unknown region is a 400 and other paths are 404', async () => {
+  assert.equal((await get('/api/radar?region=kerala', envWith('k'))).status, 400);
+  assert.equal((await get('/api/radar', envWith('k'))).status, 400);
+  assert.equal((await get('/api/other', envWith('k'))).status, 404);
+});
+
+test('a rate-limited request is a 429 saying it is not an all-clear, and FIRMS/wind are never called', async () => {
+  const assetRequests: string[] = [];
+  const env = envWith('test-key', assetRequests);
+  env.RADAR_LIMITER = { limit: async () => ({ success: false }) };
+  const { value: res, seen } = await withStubbedFetch(
+    () => new Response('unexpected'),
+    () => get('/api/radar?region=north', env),
+  );
+  assert.equal(res.status, 429);
+  assert.match(((await res.json()) as { error: string }).error, /not an all-clear/);
+  assert.equal(res.headers.get('retry-after'), '60');
+  assert.equal(res.headers.get('cache-control'), 'no-store');
+  assert.equal(seen.length, 0);
+  assert.deepEqual(assetRequests, []);
+});
+
